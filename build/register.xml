@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<package name="notification" version="v0.0.1">
+
+    <!-- 1.依赖分析 - 描述运行本插件包需要的其他插件包 -->
+    <packageDependencies>
+    </packageDependencies>
+
+    <!-- 2.菜单注入 - 描述运行本插件包需要注入的菜单 -->
+    <menus>
+    </menus>
+
+    <!-- 3.数据模型 - 描述本插件包的数据模型,并且描述和Framework数据模型的关系 -->
+    <dataModel></dataModel>
+
+    <!-- 4.系统参数 - 描述运行本插件包需要的系统参数 -->
+    <systemParameters>
+        <systemParameter name="DEFAULT_MAIL_SENDER" scopeType="global" defaultValue="wecube-notification"/>
+    </systemParameters>
+
+    <!-- 5.权限设定 -->
+    <authorities>
+    </authorities>
+
+    <!-- 6.运行资源 - 描述部署运行本插件包需要的基础资源(如主机、虚拟机、容器、数据库等) -->
+    <resourceDependencies>
+        <docker imageName="wecube-plugins-notification:v0.0.1" containerName="wecube-plugins-notification-v0.0.1" portBindings="{{ALLOCATE_PORT}}:9095" volumeBindings="{{BASE_MOUNT_PATH}}/notification/logs:/app/notification/logs" envVariables="MAIL_AUTH_USER={{MAIL_AUTH_USER}},MAIL_AUTH_PASSWORD={{MAIL_AUTH_PASSWORD}},MAIL_AUTH_SERVER={{MAIL_AUTH_SERVER}}"/>
+    </resourceDependencies>
+
+    <!-- 7.插件列表 - 描述插件包中单个插件的输入和输出 -->
+    <plugins>
+        <plugin name="mail">
+            <interface action="send" path="/notification/mail/send" httpMethod="POST">
+                <inputParameters>
+                    <parameter datatype="string" mappingType="system_variable" mappingSystemVariableName="DEFAULT_MAIL_SENDER" required="N">sender</parameter>
+                    <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">to</parameter>
+                    <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">subject</parameter>
+                    <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">content</parameter>
+                </inputParameters>
+                <outputParameters>
+                    <parameter datatype="string" mappingType="context">errorCode</parameter>
+                    <parameter datatype="string" mappingType="context">errorMessage</parameter>
+                </outputParameters>
+            </interface>
+        </plugin>
+    </plugins>
+</package>

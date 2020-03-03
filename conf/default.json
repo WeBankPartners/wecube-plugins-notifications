@@ -1,0 +1,19 @@
+{
+  "http": {
+    "port": "9095",
+    "token": "default-token-used-in-server-side"
+  },
+  "mail": {
+    "enable": true,
+    "sender": [
+      {
+        "protocol": "smtp",
+        "name": "wecube-notification",
+        "user": "",
+        "password": "",
+        "token": "",
+        "server": ""
+      }
+    ]
+  }
+}
