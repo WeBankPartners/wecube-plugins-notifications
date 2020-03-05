@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"crypto/tls"
 )
 
 type mailObj struct {
 	Auth  smtp.Auth
+	IsSSL  bool
 	From  string
 	Server  string
 }
@@ -39,7 +41,7 @@ func InitSmtpMail()  {
 	log.Println("init smtp mail done")
 }
 
-func sendSmtpMail(smo m.SendMailObj) error {
+func sendSMTPMail(smo m.SendMailObj) error {
 	if !mailEnable {
 		return fmt.Errorf("mail channel is disable")
 	}
@@ -58,10 +60,57 @@ func sendSmtpMail(smo m.SendMailObj) error {
 	if smo.Content == "" {
 		return fmt.Errorf("content is empty")
 	}
+	var err error
+	if smo.SSL {
+		err = sendSMTPMailTLS(smo)
+	}else {
+		err = smtp.SendMail(fmt.Sprintf("%s:25", mailAuthMap[smo.Name].Server), mailAuthMap[smo.Name].Auth, mailAuthMap[smo.Name].From, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, mailAuthMap[smo.Name].From))
+	}
+	return err
+}
 
-	err := smtp.SendMail(fmt.Sprintf("%s:25", mailAuthMap[smo.Name].Server), mailAuthMap[smo.Name].Auth, mailAuthMap[smo.Name].From, smo.Accept, mailQQMessage(smo.Accept,smo.Subject,smo.Content,smo.Name,mailAuthMap[smo.Name].From))
+func sendSMTPMailTLS(smo m.SendMailObj) error {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify:true,
+		ServerName: mailAuthMap[smo.Name].Server,
+	}
+	address := fmt.Sprintf("%s:465", mailAuthMap[smo.Name].Server)
+	conn,err := tls.Dial("tcp", address, tlsConfig)
 	if err != nil {
-		log.Printf("send mail error : %v \n", err)
+		return fmt.Errorf("tls dial error: %v", err)
+	}
+	client,err := smtp.NewClient(conn, mailAuthMap[smo.Name].Server)
+	if err != nil {
+		return fmt.Errorf("smtp new client error: %v", err)
+	}
+	defer client.Close()
+	if b,_ := client.Extension("AUTH"); b {
+		err = client.Auth(mailAuthMap[smo.Name].Auth)
+		if err != nil {
+			return fmt.Errorf("client auth error: %v", err)
+		}
+	}
+	err = client.Mail(mailAuthMap[smo.Name].From)
+	if err != nil {
+		return fmt.Errorf("client mail set from error: %v", err)
+	}
+	for _,to := range smo.Accept {
+		if err = client.Rcpt(to); err != nil {
+			return fmt.Errorf("client rcpt %s error: %v", to, err)
+		}
+	}
+	w,err := client.Data()
+	if err != nil {
+		return fmt.Errorf("client data init error: %v", err)
+	}
+	_,err = w.Write(mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, mailAuthMap[smo.Name].From))
+	if err != nil {
+		return fmt.Errorf("write message error: %v", err)
+	}
+	w.Close()
+	err = client.Quit()
+	if err != nil {
+		return fmt.Errorf("client quit error: %v", err)
 	}
 	return err
 }
@@ -102,8 +151,13 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 		var resultOutputs []m.MailResultOutputObj
 		for _,v := range param.Inputs {
 			tmpResultOutputObj := m.MailResultOutputObj{CallbackParameter:v.CallbackParameter, ErrorCode:"0", ErrorMessage:""}
-			cErr := sendSmtpMail(m.SendMailObj{Name:v.Sender, Accept:strings.Split(v.To, ","), Subject:v.Subject, Content:v.Content})
+			isSSl := false
+			if v.SSL == "Y" || v.SSL == "y" {
+				isSSl = true
+			}
+			cErr := sendSMTPMail(m.SendMailObj{Name:v.Sender, Accept:strings.Split(v.To, ","), Subject:v.Subject, Content:v.Content, SSL:isSSl})
 			if cErr != nil {
+				log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
 				tmpResultOutputObj.ErrorCode = "1"
 				tmpResultOutputObj.ErrorMessage = fmt.Sprintf("error: %v", cErr)
 				resp.ResultMessage = tmpResultOutputObj.ErrorMessage

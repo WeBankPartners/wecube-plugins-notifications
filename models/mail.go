@@ -5,6 +5,7 @@ type SendMailObj struct {
 	Accept  []string
 	Subject  string
 	Content  string
+	SSL  bool
 }
 
 type MailRequestObj struct {
@@ -18,6 +19,7 @@ type MailInputObj struct {
 	To  string  `json:"to"`
 	Subject  string  `json:"subject"`
 	Content  string  `json:"content"`
+	SSL  string  `json:"ssl"`
 }
 
 type MailResultObj struct {

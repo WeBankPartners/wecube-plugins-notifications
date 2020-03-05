@@ -15,6 +15,7 @@
     <!-- 4.系统参数 - 描述运行本插件包需要的系统参数 -->
     <systemParameters>
         <systemParameter name="DEFAULT_MAIL_SENDER" scopeType="global" defaultValue="wecube-notification"/>
+        <systemParameter name="DEFAULT_MAIL_SSL_ENABLE" scopeType="global" defaultValue="Y"/>
         <systemParameter name="MAIL_AUTH_USER" scopeType="global" defaultValue=""/>
         <systemParameter name="MAIL_AUTH_PASSWORD" scopeType="global" defaultValue=""/>
         <systemParameter name="MAIL_AUTH_SERVER" scopeType="global" defaultValue=""/>
@@ -35,6 +36,7 @@
             <interface action="send" path="/notification/mail/send" httpMethod="POST">
                 <inputParameters>
                     <parameter datatype="string" mappingType="system_variable" mappingSystemVariableName="DEFAULT_MAIL_SENDER" required="N">sender</parameter>
+                    <parameter datatype="string" mappingType="system_variable" mappingSystemVariableName="DEFAULT_MAIL_SSL_ENABLE" required="N">ssl</parameter>
                     <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">to</parameter>
                     <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">subject</parameter>
                     <parameter datatype="string" mappingType="entity" mappingEntityExpression="" required="Y">content</parameter>
