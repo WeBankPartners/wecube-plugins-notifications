@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"crypto/tls"
+	"regexp"
 )
 
 type mailObj struct {
@@ -128,6 +129,11 @@ func mailQQMessage(to []string,subject,content,sender,sendFrom string) []byte {
 	return buff.Bytes()
 }
 
+func verifyMailAddress(mailString string) bool {
+	reg := regexp.MustCompile(`\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*`)
+	return reg.MatchString(mailString)
+}
+
 func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 	var resp m.MailResultObj
 	b,_ := ioutil.ReadAll(r.Body)
@@ -155,12 +161,26 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			if v.SSL == "Y" || v.SSL == "y" {
 				isSSl = true
 			}
-			cErr := sendSMTPMail(m.SendMailObj{Name:v.Sender, Accept:strings.Split(v.To, ","), Subject:v.Subject, Content:v.Content, SSL:isSSl})
-			if cErr != nil {
-				log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
-				tmpResultOutputObj.ErrorCode = "1"
-				tmpResultOutputObj.ErrorMessage = fmt.Sprintf("error: %v", cErr)
-				resp.ResultMessage = tmpResultOutputObj.ErrorMessage
+			v.To = strings.Replace(v.To, "[", "", -1)
+			v.To = strings.Replace(v.To, "]", "", -1)
+			toList := strings.Split(v.To, ",")
+			for _,vv := range toList {
+				if !verifyMailAddress(vv) {
+					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
+					tmpResultOutputObj.ErrorCode = "1"
+					tmpResultOutputObj.ErrorMessage = fmt.Sprintf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
+					resp.ResultMessage = tmpResultOutputObj.ErrorMessage
+					break
+				}
+			}
+			if tmpResultOutputObj.ErrorCode == "0" {
+				cErr := sendSMTPMail(m.SendMailObj{Name: v.Sender, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl})
+				if cErr != nil {
+					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
+					tmpResultOutputObj.ErrorCode = "1"
+					tmpResultOutputObj.ErrorMessage = fmt.Sprintf("error: %v", cErr)
+					resp.ResultMessage = tmpResultOutputObj.ErrorMessage
+				}
 			}
 			resultOutputs = append(resultOutputs, tmpResultOutputObj)
 		}
@@ -172,5 +192,6 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 		}
 	}
 	d,_ := json.Marshal(resp)
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(d)
 }
