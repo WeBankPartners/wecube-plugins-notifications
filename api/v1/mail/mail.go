@@ -25,6 +25,9 @@ var (
 	mailEnable  bool
 	defaultMail  string
 	mailAuthMap = make(map[string]mailObj)
+	defaultAuth  smtp.Auth
+	defaultServer  string
+	defaultFrom  string
 )
 
 func InitSmtpMail()  {
@@ -35,9 +38,17 @@ func InitSmtpMail()  {
 		return
 	}
 	defaultMail = m.Config().Mail.Sender[0].Name
-	for _,v := range m.Config().Mail.Sender {
+	for i,v := range m.Config().Mail.Sender {
+		if v.Server == "" || v.Server == "default_server" {
+			continue
+		}
 		tmpAuth := smtp.PlainAuth(v.Token,v.User,v.Password,v.Server)
 		mailAuthMap[v.Name] = mailObj{Auth:tmpAuth, From:v.User, Server:v.Server}
+		if i == 0 {
+			defaultAuth = tmpAuth
+			defaultServer = v.Server
+			defaultFrom = v.User
+		}
 	}
 	log.Println("init smtp mail done")
 }
@@ -49,9 +60,6 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	if smo.Name == "" {
 		smo.Name = defaultMail
 	}
-	if _,b := mailAuthMap[smo.Name];!b {
-		return fmt.Errorf("sender:%s is not exist", smo.Name)
-	}
 	if len(smo.Accept) == 0 {
 		return fmt.Errorf("param to is null")
 	}
@@ -62,36 +70,50 @@ func sendSMTPMail(smo m.SendMailObj) error {
 		return fmt.Errorf("content is empty")
 	}
 	var err error
+	tmpAuth := defaultAuth
+	tmpServer := defaultServer
+	tmpFrom := defaultFrom
+	if smo.Sender != "" && smo.SenderServer != "" && smo.SenderPassword != "" {
+		tmpAuth = smtp.PlainAuth("", smo.Sender, smo.SenderPassword, smo.SenderServer)
+		tmpServer = smo.SenderServer
+		tmpFrom = smo.Sender
+		log.Printf("use param server:%s user:%s pw:%s \n", smo.SenderServer, smo.Sender, smo.SenderPassword)
+	}else{
+		if defaultServer == "" || defaultFrom == "" {
+			return fmt.Errorf("param sender server is empty and default config server is empty,no specify server")
+		}
+		log.Println("use default config mail")
+	}
 	if smo.SSL {
-		err = sendSMTPMailTLS(smo)
+		err = sendSMTPMailTLS(smo, tmpAuth, tmpServer, tmpFrom)
 	}else {
-		err = smtp.SendMail(fmt.Sprintf("%s:25", mailAuthMap[smo.Name].Server), mailAuthMap[smo.Name].Auth, mailAuthMap[smo.Name].From, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, mailAuthMap[smo.Name].From))
+		err = smtp.SendMail(fmt.Sprintf("%s:25", tmpServer), tmpAuth, tmpFrom, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
 	}
 	return err
 }
 
-func sendSMTPMailTLS(smo m.SendMailObj) error {
+func sendSMTPMailTLS(smo m.SendMailObj,tmpAuth smtp.Auth,tmpServer,tmpFrom string) error {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify:true,
-		ServerName: mailAuthMap[smo.Name].Server,
+		ServerName: tmpServer,
 	}
-	address := fmt.Sprintf("%s:465", mailAuthMap[smo.Name].Server)
+	address := fmt.Sprintf("%s:465", tmpServer)
 	conn,err := tls.Dial("tcp", address, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("tls dial error: %v", err)
 	}
-	client,err := smtp.NewClient(conn, mailAuthMap[smo.Name].Server)
+	client,err := smtp.NewClient(conn, tmpServer)
 	if err != nil {
 		return fmt.Errorf("smtp new client error: %v", err)
 	}
 	defer client.Close()
 	if b,_ := client.Extension("AUTH"); b {
-		err = client.Auth(mailAuthMap[smo.Name].Auth)
+		err = client.Auth(tmpAuth)
 		if err != nil {
 			return fmt.Errorf("client auth error: %v", err)
 		}
 	}
-	err = client.Mail(mailAuthMap[smo.Name].From)
+	err = client.Mail(tmpFrom)
 	if err != nil {
 		return fmt.Errorf("client mail set from error: %v", err)
 	}
@@ -104,7 +126,7 @@ func sendSMTPMailTLS(smo m.SendMailObj) error {
 	if err != nil {
 		return fmt.Errorf("client data init error: %v", err)
 	}
-	_,err = w.Write(mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, mailAuthMap[smo.Name].From))
+	_,err = w.Write(mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
 	if err != nil {
 		return fmt.Errorf("write message error: %v", err)
 	}
@@ -174,7 +196,7 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 				}
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
-				cErr := sendSMTPMail(m.SendMailObj{Name: v.Sender, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl})
+				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
 				if cErr != nil {
 					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
 					tmpResultOutputObj.ErrorCode = "1"

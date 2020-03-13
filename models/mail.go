@@ -6,6 +6,9 @@ type SendMailObj struct {
 	Subject  string
 	Content  string
 	SSL  bool
+	Sender  string
+	SenderPassword  string
+	SenderServer  string
 }
 
 type MailRequestObj struct {
@@ -15,7 +18,9 @@ type MailRequestObj struct {
 
 type MailInputObj struct {
 	CallbackParameter  string  `json:"callbackParameter"`
-	Sender  string  `json:"sender"`
+	SenderMail  string  `json:"senderMail"`
+	SenderMailServer  string  `json:"senderMailServer"`
+	SenderPassword  string  `json:"senderPassword"`
 	To  string  `json:"to"`
 	Subject  string  `json:"subject"`
 	Content  string  `json:"content"`
