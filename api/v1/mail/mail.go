@@ -159,6 +159,7 @@ func verifyMailAddress(mailString string) bool {
 func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 	var resp m.MailResultObj
 	b,_ := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
 	var param m.MailRequestObj
 	err := json.Unmarshal(b, &param)
 	if err != nil {
@@ -170,7 +171,7 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 		w.Write(d)
 		return
 	}
-	log.Printf("Send mail param: %s \n", string(b))
+	log.Printf("Request:------->> %s \n", string(b))
 	if len(param.Inputs) == 0 {
 		resp.ResultCode = "1"
 		resp.ResultMessage = "Inputs list is null"
@@ -214,6 +215,7 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 		}
 	}
 	d,_ := json.Marshal(resp)
+	log.Printf("Result:------->> %s \n", string(d))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(d)
 }
