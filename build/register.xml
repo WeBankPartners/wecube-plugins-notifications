@@ -50,6 +50,10 @@
         </plugin>
         <!-- 最佳实践 -->
         <plugin name="mail" targetPackage="wecube-monitor" targetEntity="alarm" registerName="alarm" targetEntityFilterRule="">
+            <roleBinds>
+                <roleBind permission="MGMT" roleName="SUPER_ADMIN"/>
+                <roleBind permission="USE" roleName="SUPER_ADMIN"/>
+            </roleBinds>
             <interface action="send" path="/notification/mail/send" httpMethod="POST" filterRule="">
                 <inputParameters>
                     <parameter datatype="string" required="Y" sensitiveData="N" mappingType="system_variable" mappingSystemVariableName="DEFAULT_MAIL_SSL_ENABLE">ssl</parameter>
