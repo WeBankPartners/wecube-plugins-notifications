@@ -42,7 +42,8 @@ func InitSmtpMail()  {
 		if v.Server == "" || v.Server == "default_server" {
 			continue
 		}
-		tmpAuth := smtp.PlainAuth(v.Token,v.User,v.Password,v.Server)
+		tmpPassword := m.DecryptRsa(v.Password)
+		tmpAuth := smtp.PlainAuth(v.Token,v.User,tmpPassword,v.Server)
 		mailAuthMap[v.Name] = mailObj{Auth:tmpAuth, From:v.User, Server:v.Server}
 		if i == 0 {
 			defaultAuth = tmpAuth
@@ -197,6 +198,7 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 				}
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
+				v.SenderPassword = m.DecryptRsa(v.SenderPassword)
 				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
 				if cErr != nil {
 					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
