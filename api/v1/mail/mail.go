@@ -88,7 +88,13 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	if smo.SSL {
 		err = sendSMTPMailTLS(smo, tmpAuth, tmpServer, tmpFrom)
 	}else {
-		err = smtp.SendMail(fmt.Sprintf("%s:25", tmpServer), tmpAuth, tmpFrom, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
+		var address string
+		if strings.Contains(tmpServer, ":") {
+			address = tmpServer
+		}else {
+			address = fmt.Sprintf("%s:25", tmpServer)
+		}
+		err = smtp.SendMail(address, tmpAuth, tmpFrom, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
 	}
 	return err
 }
@@ -98,7 +104,12 @@ func sendSMTPMailTLS(smo m.SendMailObj,tmpAuth smtp.Auth,tmpServer,tmpFrom strin
 		InsecureSkipVerify:true,
 		ServerName: tmpServer,
 	}
-	address := fmt.Sprintf("%s:465", tmpServer)
+	var address string
+	if strings.Contains(tmpServer, ":") {
+		address = tmpServer
+	}else {
+		address = fmt.Sprintf("%s:465", tmpServer)
+	}
 	conn,err := tls.Dial("tcp", address, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("tls dial error: %v", err)
