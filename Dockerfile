@@ -9,9 +9,9 @@ ENV MAIL_AUTH_SERVER=default_server
 
 RUN mkdir -p $BASE_HOME $BASE_HOME/conf $BASE_HOME/logs
 
-ADD start.sh $BASE_HOME/
-ADD stop.sh $BASE_HOME/
-ADD default.json $BASE_HOME/conf/
+ADD build/start.sh $BASE_HOME/
+ADD build/stop.sh $BASE_HOME/
+ADD build/default.json $BASE_HOME/conf/
 ADD wecube-plugins-notifications $BASE_HOME/
 
 RUN chmod +x $BASE_HOME/*.sh
