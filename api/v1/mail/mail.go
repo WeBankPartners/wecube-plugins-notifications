@@ -24,7 +24,7 @@ type mailObj struct {
 var (
 	mailEnable  bool
 	defaultMail  string
-	mailAuthMap = make(map[string]mailObj)
+	//mailAuthMap = make(map[string]mailObj)
 	defaultAuth  smtp.Auth
 	defaultServer  string
 	defaultFrom  string
@@ -39,17 +39,16 @@ func InitSmtpMail()  {
 	}
 	defaultMail = m.Config().Mail.Sender[0].Name
 	for i,v := range m.Config().Mail.Sender {
-		if v.Server == "" || v.Server == "default_server" {
+		if v.Server == "" || v.Server == "default_server" || i > 0 {
 			continue
 		}
-		tmpPassword := m.DecryptRsa(v.Password)
-		tmpAuth := smtp.PlainAuth(v.Token,v.User,tmpPassword,v.Server)
-		mailAuthMap[v.Name] = mailObj{Auth:tmpAuth, From:v.User, Server:v.Server}
-		if i == 0 {
-			defaultAuth = tmpAuth
-			defaultServer = v.Server
-			defaultFrom = v.User
+		if v.Password != "" {
+			tmpPassword := m.DecryptRsa(v.Password)
+			defaultAuth = smtp.PlainAuth(v.Token, v.User, tmpPassword, v.Server)
 		}
+		//mailAuthMap[v.Name] = mailObj{Auth:tmpAuth, From:v.User, Server:v.Server}
+		defaultServer = v.Server
+		defaultFrom = v.User
 	}
 	log.Println("init smtp mail done")
 }
@@ -74,8 +73,12 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	tmpAuth := defaultAuth
 	tmpServer := defaultServer
 	tmpFrom := defaultFrom
-	if smo.Sender != "" && smo.SenderServer != "" && smo.SenderPassword != "" {
-		tmpAuth = smtp.PlainAuth("", smo.Sender, smo.SenderPassword, smo.SenderServer)
+	if smo.Sender != "" && smo.SenderServer != "" {
+		if smo.SenderPassword != "" {
+			tmpAuth = smtp.PlainAuth("", smo.Sender, smo.SenderPassword, smo.SenderServer)
+		}else{
+			tmpAuth = nil
+		}
 		tmpServer = smo.SenderServer
 		tmpFrom = smo.Sender
 		log.Printf("use param server:%s user:%s pw:%s \n", smo.SenderServer, smo.Sender, smo.SenderPassword)
