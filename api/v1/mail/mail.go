@@ -1,7 +1,7 @@
 package mail
 
 import (
-	"net/smtp"
+	"github.com/WeBankPartners/wecube-plugins-notifications/services/smtp"
 	"fmt"
 	"bytes"
 	"strings"
