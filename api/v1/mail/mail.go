@@ -202,7 +202,11 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			v.To = strings.Replace(v.To, "[", "", -1)
 			v.To = strings.Replace(v.To, "]", "", -1)
 			toList := strings.Split(v.To, ",")
+			var toListNew []string
 			for _,vv := range toList {
+				if vv == "" {
+					continue
+				}
 				if !verifyMailAddress(vv) {
 					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
 					tmpResultOutputObj.ErrorCode = "1"
@@ -210,10 +214,11 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 					resp.ResultMessage = tmpResultOutputObj.ErrorMessage
 					break
 				}
+				toListNew = append(toListNew, vv)
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
 				v.SenderPassword = m.DecryptRsa(v.SenderPassword)
-				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
+				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toListNew, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
 				if cErr != nil {
 					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
 					tmpResultOutputObj.ErrorCode = "1"
