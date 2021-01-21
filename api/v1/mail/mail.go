@@ -207,14 +207,16 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 				if vv == "" {
 					continue
 				}
-				if !verifyMailAddress(vv) {
+				if verifyMailAddress(vv) {
+					toListNew = append(toListNew, vv)
+				}else{
 					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
-					tmpResultOutputObj.ErrorCode = "1"
-					tmpResultOutputObj.ErrorMessage = fmt.Sprintf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
-					resp.ResultMessage = tmpResultOutputObj.ErrorMessage
-					break
 				}
-				toListNew = append(toListNew, vv)
+			}
+			if len(toListNew) == 0 {
+				tmpResultOutputObj.ErrorCode = "1"
+				tmpResultOutputObj.ErrorMessage = fmt.Sprintf("Index: %s, mail accept list validate fail", v.CallbackParameter)
+				resp.ResultMessage = tmpResultOutputObj.ErrorMessage
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
 				v.SenderPassword = m.DecryptRsa(v.SenderPassword)
