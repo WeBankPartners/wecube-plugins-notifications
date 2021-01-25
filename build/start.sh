@@ -9,10 +9,10 @@ sed -i "s~{{MAIL_AUTH_SERVER}}~$MAIL_AUTH_SERVER~g" conf/default.json
 if [ -n "$NOTIFICATION_LOCAL_DNS_MAP" ]
 then
   dns_map=${NOTIFICATION_LOCAL_DNS_MAP}
-  dns_map_split=(${dns_map//,/ })
-  for v in ${dns_map_split[@]}
+  set ${dns_map//,/ }
+  for v in "$@"
   do
-    echo ${v//=/ } >> /etc/hosts
+    echo "${v//=/ }" >> /etc/hosts
   done
 fi
 
