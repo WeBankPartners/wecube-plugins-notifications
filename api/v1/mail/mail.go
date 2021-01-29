@@ -1,7 +1,7 @@
 package mail
 
 import (
-	"net/smtp"
+	"github.com/WeBankPartners/wecube-plugins-notifications/services/smtp"
 	"fmt"
 	"bytes"
 	"strings"
@@ -202,18 +202,25 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			v.To = strings.Replace(v.To, "[", "", -1)
 			v.To = strings.Replace(v.To, "]", "", -1)
 			toList := strings.Split(v.To, ",")
+			var toListNew []string
 			for _,vv := range toList {
-				if !verifyMailAddress(vv) {
-					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
-					tmpResultOutputObj.ErrorCode = "1"
-					tmpResultOutputObj.ErrorMessage = fmt.Sprintf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
-					resp.ResultMessage = tmpResultOutputObj.ErrorMessage
-					break
+				if vv == "" {
+					continue
 				}
+				if verifyMailAddress(vv) {
+					toListNew = append(toListNew, vv)
+				}else{
+					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
+				}
+			}
+			if len(toListNew) == 0 {
+				tmpResultOutputObj.ErrorCode = "1"
+				tmpResultOutputObj.ErrorMessage = fmt.Sprintf("Index: %s, mail accept list validate fail", v.CallbackParameter)
+				resp.ResultMessage = tmpResultOutputObj.ErrorMessage
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
 				v.SenderPassword = m.DecryptRsa(v.SenderPassword)
-				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toList, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
+				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toListNew, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
 				if cErr != nil {
 					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
 					tmpResultOutputObj.ErrorCode = "1"

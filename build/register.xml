@@ -19,6 +19,7 @@
         <systemParameter name="MAIL_DEFAULT_SENDER_USER" scopeType="global" defaultValue=""/>
         <systemParameter name="MAIL_DEFAULT_SENDER_PASSWORD" scopeType="global" defaultValue=""/>
         <systemParameter name="MAIL_DEFAULT_SENDER_SERVER" scopeType="global" defaultValue=""/>
+        <systemParameter name="NOTIFICATION_LOCAL_DNS_MAP" scopeType="global" defaultValue=""/>
     </systemParameters>
 
     <!-- 5.权限设定 -->
@@ -27,7 +28,7 @@
 
     <!-- 6.运行资源 - 描述部署运行本插件包需要的基础资源(如主机、虚拟机、容器、数据库等) -->
     <resourceDependencies>
-        <docker imageName="wecube-plugins-notifications:{{PLUGIN_VERSION}}" containerName="wecube-plugins-notification-{{PLUGIN_VERSION}}" portBindings="{{ALLOCATE_PORT}}:9095" volumeBindings="{{BASE_MOUNT_PATH}}/notification/logs:/app/notification/logs,/etc/localtime:/etc/localtime,{{BASE_MOUNT_PATH}}/certs:/data/certs" envVariables="MAIL_AUTH_USER={{MAIL_DEFAULT_SENDER_USER}},MAIL_AUTH_PASSWORD={{MAIL_DEFAULT_SENDER_PASSWORD}},MAIL_AUTH_SERVER={{MAIL_DEFAULT_SENDER_SERVER}},http_proxy={{HTTP_PROXY}},https_proxy={{HTTPS_PROXY}},HTTP_PROXY={{HTTP_PROXY}},HTTPS_PROXY={{HTTPS_PROXY}}"/>
+        <docker imageName="wecube-plugins-notifications:{{PLUGIN_VERSION}}" containerName="wecube-plugins-notification-{{PLUGIN_VERSION}}" portBindings="{{ALLOCATE_PORT}}:9095" volumeBindings="{{BASE_MOUNT_PATH}}/notification/logs:/app/notification/logs,/etc/localtime:/etc/localtime,{{BASE_MOUNT_PATH}}/certs:/data/certs" envVariables="MAIL_AUTH_USER={{MAIL_DEFAULT_SENDER_USER}},MAIL_AUTH_PASSWORD={{MAIL_DEFAULT_SENDER_PASSWORD}},MAIL_AUTH_SERVER={{MAIL_DEFAULT_SENDER_SERVER}},http_proxy={{HTTP_PROXY}},https_proxy={{HTTPS_PROXY}},HTTP_PROXY={{HTTP_PROXY}},HTTPS_PROXY={{HTTPS_PROXY}},NOTIFICATION_LOCAL_DNS_MAP={{NOTIFICATION_LOCAL_DNS_MAP}}"/>
     </resourceDependencies>
 
     <!-- 7.插件列表 - 描述插件包中单个插件的输入和输出 -->
