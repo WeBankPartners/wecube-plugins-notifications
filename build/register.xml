@@ -50,5 +50,22 @@
                 </outputParameters>
             </interface>
         </plugin>
+        <plugin name="sms" targetPackage="" targetEntity="" registerName="" targetEntityFilterRule="">
+            <interface action="send" path="/notification/sms/send" httpMethod="POST" filterRule="">
+                <inputParameters>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">secretId</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">secretKey</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">smsSdkAppId</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">templateId</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">sender</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">to</parameter>
+                    <parameter datatype="string" required="Y" sensitiveData="N" mappingType="constant">content</parameter>
+                </inputParameters>
+                <outputParameters>
+                    <parameter datatype="string" sensitiveData="N" mappingType="context">errorCode</parameter>
+                    <parameter datatype="string" sensitiveData="N" mappingType="context">errorMessage</parameter>
+                </outputParameters>
+            </interface>
+        </plugin>
     </plugins>
 </package>

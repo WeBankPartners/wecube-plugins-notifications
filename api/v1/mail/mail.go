@@ -1,36 +1,36 @@
 package mail
 
 import (
-	"github.com/WeBankPartners/wecube-plugins-notifications/services/smtp"
-	"fmt"
 	"bytes"
-	"strings"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
 	m "github.com/WeBankPartners/wecube-plugins-notifications/models"
+	"github.com/WeBankPartners/wecube-plugins-notifications/services/smtp"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
-	"encoding/json"
-	"crypto/tls"
 	"regexp"
+	"strings"
 )
 
 type mailObj struct {
-	Auth  smtp.Auth
+	Auth   smtp.Auth
 	IsSSL  bool
-	From  string
-	Server  string
+	From   string
+	Server string
 }
 
 var (
 	mailEnable  bool
-	defaultMail  string
+	defaultMail string
 	//mailAuthMap = make(map[string]mailObj)
-	defaultAuth  smtp.Auth
-	defaultServer  string
-	defaultFrom  string
+	defaultAuth   smtp.Auth
+	defaultServer string
+	defaultFrom   string
 )
 
-func InitSmtpMail()  {
+func InitSmtpMail() {
 	mailEnable = true
 	if !m.Config().Mail.Enable || len(m.Config().Mail.Sender) == 0 {
 		mailEnable = false
@@ -38,7 +38,7 @@ func InitSmtpMail()  {
 		return
 	}
 	defaultMail = m.Config().Mail.Sender[0].Name
-	for i,v := range m.Config().Mail.Sender {
+	for i, v := range m.Config().Mail.Sender {
 		if v.Server == "" || v.Server == "default_server" || i > 0 {
 			continue
 		}
@@ -76,13 +76,13 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	if smo.Sender != "" && smo.SenderServer != "" {
 		if smo.SenderPassword != "" {
 			tmpAuth = smtp.PlainAuth("", smo.Sender, smo.SenderPassword, smo.SenderServer)
-		}else{
+		} else {
 			tmpAuth = nil
 		}
 		tmpServer = smo.SenderServer
 		tmpFrom = smo.Sender
 		log.Printf("use param server:%s user:%s pw:%s \n", smo.SenderServer, smo.Sender, smo.SenderPassword)
-	}else{
+	} else {
 		if defaultServer == "" || defaultFrom == "" {
 			return fmt.Errorf("param sender server is empty and default config server is empty,no specify server")
 		}
@@ -90,11 +90,11 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	}
 	if smo.SSL {
 		err = sendSMTPMailTLS(smo, tmpAuth, tmpServer, tmpFrom)
-	}else {
+	} else {
 		var address string
 		if strings.Contains(tmpServer, ":") {
 			address = tmpServer
-		}else {
+		} else {
 			address = fmt.Sprintf("%s:25", tmpServer)
 		}
 		err = smtp.SendMail(address, tmpAuth, tmpFrom, smo.Accept, mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
@@ -102,27 +102,27 @@ func sendSMTPMail(smo m.SendMailObj) error {
 	return err
 }
 
-func sendSMTPMailTLS(smo m.SendMailObj,tmpAuth smtp.Auth,tmpServer,tmpFrom string) error {
+func sendSMTPMailTLS(smo m.SendMailObj, tmpAuth smtp.Auth, tmpServer, tmpFrom string) error {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify:true,
-		ServerName: tmpServer,
+		InsecureSkipVerify: true,
+		ServerName:         tmpServer,
 	}
 	var address string
 	if strings.Contains(tmpServer, ":") {
 		address = tmpServer
-	}else {
+	} else {
 		address = fmt.Sprintf("%s:465", tmpServer)
 	}
-	conn,err := tls.Dial("tcp", address, tlsConfig)
+	conn, err := tls.Dial("tcp", address, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("tls dial error: %v", err)
 	}
-	client,err := smtp.NewClient(conn, tmpServer)
+	client, err := smtp.NewClient(conn, tmpServer)
 	if err != nil {
 		return fmt.Errorf("smtp new client error: %v", err)
 	}
 	defer client.Close()
-	if b,_ := client.Extension("AUTH"); b {
+	if b, _ := client.Extension("AUTH"); b {
 		err = client.Auth(tmpAuth)
 		if err != nil {
 			return fmt.Errorf("client auth error: %v", err)
@@ -132,16 +132,16 @@ func sendSMTPMailTLS(smo m.SendMailObj,tmpAuth smtp.Auth,tmpServer,tmpFrom strin
 	if err != nil {
 		return fmt.Errorf("client mail set from error: %v", err)
 	}
-	for _,to := range smo.Accept {
+	for _, to := range smo.Accept {
 		if err = client.Rcpt(to); err != nil {
 			return fmt.Errorf("client rcpt %s error: %v", to, err)
 		}
 	}
-	w,err := client.Data()
+	w, err := client.Data()
 	if err != nil {
 		return fmt.Errorf("client data init error: %v", err)
 	}
-	_,err = w.Write(mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
+	_, err = w.Write(mailQQMessage(smo.Accept, smo.Subject, smo.Content, smo.Name, tmpFrom))
 	if err != nil {
 		return fmt.Errorf("write message error: %v", err)
 	}
@@ -153,12 +153,12 @@ func sendSMTPMailTLS(smo m.SendMailObj,tmpAuth smtp.Auth,tmpServer,tmpFrom strin
 	return err
 }
 
-func mailQQMessage(to []string,subject,content,sender,sendFrom string) []byte {
+func mailQQMessage(to []string, subject, content, sender, sendFrom string) []byte {
 	var buff bytes.Buffer
 	buff.WriteString("To:")
 	buff.WriteString(strings.Join(to, ","))
 	buff.WriteString("\r\nFrom:")
-	buff.WriteString(sender+"<"+sendFrom+">")
+	buff.WriteString(sender + "<" + sendFrom + ">")
 	buff.WriteString("\r\nSubject:")
 	buff.WriteString(subject)
 	buff.WriteString("\r\nContent-Type:text/plain;charset=UTF-8\r\n\r\n")
@@ -171,30 +171,30 @@ func verifyMailAddress(mailString string) bool {
 	return reg.MatchString(mailString)
 }
 
-func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
+func SendMailHandler(w http.ResponseWriter, r *http.Request) {
 	var resp m.MailResultObj
-	b,_ := ioutil.ReadAll(r.Body)
+	b, _ := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	var param m.MailRequestObj
 	err := json.Unmarshal(b, &param)
 	if err != nil {
 		log.Printf("Param json unmarshal error : %v \n", err)
 		resp.ResultCode = "1"
-		resp.ResultMessage = fmt.Sprintf("Param json unmarshal error : %v",err)
-		resp.Results = m.MailResultOutputs{Outputs:[]m.MailResultOutputObj{}}
-		d,_ := json.Marshal(resp)
+		resp.ResultMessage = fmt.Sprintf("Param json unmarshal error : %v", err)
+		resp.Results = m.MailResultOutputs{Outputs: []m.MailResultOutputObj{}}
+		d, _ := json.Marshal(resp)
 		w.Write(d)
 		return
 	}
-	log.Printf("Request:------->> %s \n", string(b))
+	log.Printf("Request mail:------->> \n")
 	if len(param.Inputs) == 0 {
 		resp.ResultCode = "1"
 		resp.ResultMessage = "Inputs list is null"
-		resp.Results = m.MailResultOutputs{Outputs:[]m.MailResultOutputObj{}}
-	}else{
+		resp.Results = m.MailResultOutputs{Outputs: []m.MailResultOutputObj{}}
+	} else {
 		var resultOutputs []m.MailResultOutputObj
-		for _,v := range param.Inputs {
-			tmpResultOutputObj := m.MailResultOutputObj{CallbackParameter:v.CallbackParameter, ErrorCode:"0", ErrorMessage:""}
+		for _, v := range param.Inputs {
+			tmpResultOutputObj := m.MailResultOutputObj{CallbackParameter: v.CallbackParameter, ErrorCode: "0", ErrorMessage: ""}
 			isSSl := false
 			if v.SSL == "Y" || v.SSL == "y" {
 				isSSl = true
@@ -203,13 +203,13 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			v.To = strings.Replace(v.To, "]", "", -1)
 			toList := strings.Split(v.To, ",")
 			var toListNew []string
-			for _,vv := range toList {
+			for _, vv := range toList {
 				if vv == "" {
 					continue
 				}
 				if verifyMailAddress(vv) {
 					toListNew = append(toListNew, vv)
-				}else{
+				} else {
 					log.Printf("Index: %s ,mail: %s validate fail", v.CallbackParameter, vv)
 				}
 			}
@@ -220,7 +220,7 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			}
 			if tmpResultOutputObj.ErrorCode == "0" {
 				v.SenderPassword = m.DecryptRsa(v.SenderPassword)
-				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toListNew, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender:v.SenderMail, SenderPassword:v.SenderPassword, SenderServer:v.SenderMailServer})
+				cErr := sendSMTPMail(m.SendMailObj{Name: v.SenderMail, Accept: toListNew, Subject: v.Subject, Content: v.Content, SSL: isSSl, Sender: v.SenderMail, SenderPassword: v.SenderPassword, SenderServer: v.SenderMailServer})
 				if cErr != nil {
 					log.Printf("Index: %s ,send mail error : %v \n", v.CallbackParameter, cErr)
 					tmpResultOutputObj.ErrorCode = "1"
@@ -230,15 +230,15 @@ func SendMailHandler(w http.ResponseWriter,r *http.Request)  {
 			}
 			resultOutputs = append(resultOutputs, tmpResultOutputObj)
 		}
-		resp.Results = m.MailResultOutputs{Outputs:resultOutputs}
+		resp.Results = m.MailResultOutputs{Outputs: resultOutputs}
 		if resp.ResultMessage != "" {
 			resp.ResultCode = "1"
-		}else{
+		} else {
 			resp.ResultCode = "0"
 		}
 	}
-	d,_ := json.Marshal(resp)
-	log.Printf("Result:------->> %s \n", string(d))
+	d, _ := json.Marshal(resp)
+	log.Printf("Result mail:------->> %s \n", string(d))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(d)
 }
