@@ -1,4 +1,4 @@
-FROM alpine
+FROM ccr.ccs.tencentyun.com/webankpartners/alpine-base:v1.0
 LABEL maintainer = "Webank CTB Team"
 
 ENV BASE_HOME=/app/notification
